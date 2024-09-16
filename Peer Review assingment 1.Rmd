@@ -1,0 +1,135 @@
+---
+title: "Personal Activity Monitoring Data Analysis"
+author: "Claudia Morilla"
+date: "`r Sys.Date()`"
+output: html_document
+---
+# Loading and Preprocessing the Data
+
+## Load necessary packages
+
+```{r}
+library(ggplot2)
+library(dplyr)
+```
+
+## Load the dataset
+```{r}
+activity_data <- read.csv("C:/Users/klaum/OneDrive/Desktop/activity.csv")
+```
+
+## Inspect the dataset structure
+```{r}
+str(activity_data)
+```
+
+## Check the summary of the data
+```{r}
+summary(activity_data)
+```
+# Mean Total Number of Steps Per Day
+
+## Calculate total steps per day (ignoring NAs)
+```{r}
+total_steps_per_day <- activity_data %>%
+  group_by(date) %>%
+  summarise(total_steps = sum(steps, na.rm = TRUE))
+```
+## Plot histogram of total steps per day
+```{r}
+ggplot(total_steps_per_day, aes(x = total_steps)) +
+  geom_histogram(binwidth = 1000, fill = "blue", color = "black") +
+  labs(title = "Total Steps Per Day", x = "Total Steps", y = "Frequency")
+```
+## Calculate mean and median of total steps per day
+```{r}
+mean_steps <- mean(total_steps_per_day$total_steps)
+median_steps <- median(total_steps_per_day$total_steps)
+```
+## Print mean and median
+```{r}
+mean_steps
+median_steps
+```
+# Average Daily Activity Pattern
+
+## Average number of steps per 5-minute interval across all days
+```{r}
+avg_steps_per_interval <- activity_data %>%
+  group_by(interval) %>%
+  summarise(avg_steps = mean(steps, na.rm = TRUE))
+```
+## Time series plot of average steps per 5-minute interval
+```{r}
+ggplot(avg_steps_per_interval, aes(x = interval, y = avg_steps)) +
+  geom_line(color = "blue") +
+  labs(title = "Average Daily Activity Pattern", x = "5-minute Interval", y = "Average Steps")
+```
+## Identify the 5-minute interval with the maximum average steps
+```{r}
+max_interval <- avg_steps_per_interval[which.max(avg_steps_per_interval$avg_steps), ]
+max_interval
+```
+# Imputing Missing Data
+
+## Total number of missing values
+```{r}
+total_na <- sum(is.na(activity_data$steps))
+```
+## Impute missing values using the mean for each 5-minute interval
+```{r}
+imputed_data <- activity_data %>%
+  group_by(interval) %>%
+  mutate(steps = ifelse(is.na(steps), mean(steps, na.rm = TRUE), steps))
+```
+## Calculate total steps per day with imputed data
+```{r}
+total_steps_imputed <- imputed_data %>%
+  group_by(date) %>%
+  summarise(total_steps = sum(steps))
+```
+## Plot histogram of total steps per day after imputing missing data
+```{r}
+ggplot(total_steps_imputed, aes(x = total_steps)) +
+  geom_histogram(binwidth = 1000, fill = "green", color = "black") +
+  labs(title = "Total Steps Per Day (Imputed Data)", x = "Total Steps", y = "Frequency")
+```
+## Calculate mean and median after imputation
+```{r}
+mean_steps_imputed <- mean(total_steps_imputed$total_steps)
+median_steps_imputed <- median(total_steps_imputed$total_steps)
+```
+## Print mean and median after imputation
+```{r}
+mean_steps_imputed
+median_steps_imputed
+```
+# Weekday vs. Weekend Activity Patterns
+
+## Create a factor variable for weekday vs weekend
+```{r}
+imputed_data$date <- as.Date(imputed_data$date)
+imputed_data$day_type <- ifelse(weekdays(imputed_data$date) %in% c("Saturday", "Sunday"), "weekend", "weekday")
+```
+## Average number of steps for each 5-minute interval split by weekday and weekend
+```{r}
+avg_steps_weekday_weekend <- imputed_data %>%
+  group_by(interval, day_type) %>%
+  summarise(avg_steps = mean(steps))
+```
+## Panel plot comparing weekday and weekend activity patterns
+```{r}
+ggplot(avg_steps_weekday_weekend, aes(x = interval, y = avg_steps, color = day_type)) +
+  geom_line() +
+  facet_wrap(~ day_type, ncol = 1) +
+  labs(title = "Activity Patterns: Weekday vs Weekend", x = "5-minute Interval", y = "Average Steps")
+```
+
+# Conclusion
+- The mean and median number of steps taken per day increased after imputing missing values, from approximately 9354 and 10395 to 10766 for both metrics. 
+- The most active 5-minute interval was at interval 835, where an average of 206 steps were taken.
+- Activity patterns differed between weekdays and weekends, with noticeable differences in the time of day when the most steps were taken.
+
+
+
+
